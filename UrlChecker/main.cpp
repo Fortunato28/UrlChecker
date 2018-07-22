@@ -1,6 +1,7 @@
 #include <iostream>
 #include <boost/program_options.hpp>
 #include <fstream>
+#include "urlwrapper.h"
 
 namespace po = boost::program_options;
 
@@ -68,6 +69,8 @@ int main(int argc, char* argv[])
         cout << e.what() << endl;
         return 1;
     }
+
+    UrlWrapper a(urls.at(1), n, t);
 
     return 0;
 }
