@@ -1,4 +1,4 @@
-#include "urlwrapper.h"
+#include "urlwrapper.hpp"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <chrono>
+#include <url_parser.hpp>
+#include <netdb.h>
 
 //172.217.16.164
 
@@ -14,14 +16,13 @@ using std::chrono::high_resolution_clock;
 UrlWrapper::UrlWrapper(std::string gettedUrl, int n, int t) :
     url(gettedUrl), requestsNumber(n), delay(t)
 {
-    serverPolling();
 }
 
 int UrlWrapper::sendAll(int sock, const std::string &message)
 {
-   size_t totalSended = 0;
-   size_t sended;
-   size_t messageLength = message.length();
+   int totalSended = 0;
+   int sended = 0;
+   int messageLength = message.length();
 
    while(totalSended < messageLength)
    {
@@ -36,19 +37,6 @@ int UrlWrapper::sendAll(int sock, const std::string &message)
    return sended < 0 ? -1 : totalSended;
 }
 
-int UrlWrapper::recvAll(int sock, std::string *gettedMessage)       // Скорее всего удалить
-{
-    size_t getted;
-    char buf[500];
-
-    while(getted != 0)
-    {
-        getted = recv(sock, buf, 1, MSG_WAITALL);
-    }
-
-    *gettedMessage = buf;
-}
-
 int UrlWrapper::serverPolling()
 {
     int sock;
@@ -61,36 +49,45 @@ int UrlWrapper::serverPolling()
         exit(1);
     }
 
-    std::string googleCom = "172.217.16.164";
-    struct in_addr *inAddr;
+    struct hostent *siteData = gethostbyname(url.host().c_str());
+    cout << url.str() << endl;
+    if(siteData == nullptr)
+    {
+        herror("Wrong DNS resolve");
+        exit(3);
+    }
 
     addr.sin_family = AF_INET;
     addr.sin_port   = htons(80);
-    addr.sin_addr.s_addr = htonl(0xACD910A4);       // Адрес гугла, прикрутить получение по DNS
+    memcpy(&addr.sin_addr.s_addr, siteData->h_addr, siteData->h_length); // Это такая запись IP в нужную структуру
     if(connect(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
     {
         std::perror("Connect error");
         exit(1);
     }
 
-    std::string getRequest = "HEAD / HTTP/1.1\r\nHost: google.com\r\nConnection: close\r\n\r\n"; // Парсинг урл? + нужная конкатенация
+    std::string request = "HEAD " + url.path() +" HTTP/1.1\r\nHost: "
+                             + url.host() + "\r\nConnection: close\r\n\r\n";
     high_resolution_clock::time_point timeBefore = high_resolution_clock::now();
-    size_t sended = sendAll(sock, getRequest);
+    size_t sended = sendAll(sock, request);
 
     std::string gettedMessage;
-    char buf[1];
-    size_t getted = recv(sock, buf, 1, 0);       // Нужны ли вообще получаемые данные?
+    char buf[1024];    // Больше байта и не нужно
+    long int getted = recv(sock, buf, 1024, 0);
 
     high_resolution_clock::time_point timeAfter = high_resolution_clock::now();
 
     close(sock);
 
-    // Время отклика сервера
+    // Время отклика сервера в секундах
     std::chrono::duration<double> timeDiff = std::chrono::duration_cast<std::chrono::duration<double>>(timeAfter - timeBefore);
 
-    cout << getted << endl;
+    cout << request << endl;
     cout << buf << endl;
     cout << timeDiff.count() << endl;
+    cout << url.str() << endl;
+    cout << url.host() << endl;
+    cout << url.path() << endl;
 
     return 0;
 }

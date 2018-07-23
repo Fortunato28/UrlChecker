@@ -4,10 +4,12 @@ set (CMAKE_CXX_STANDARD 11)
 project(UrlChecker)
 
 set(SOURCES
-    main.cpp
-    urlwrapper.cpp)
+    src/main.cpp
+    src/urlwrapper.cpp
+    src/url_parser.cpp)
 set(HEADERS
-    urlwrapper.h)
+    headers/urlwrapper.hpp
+    headers/url_parser.hpp)
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
@@ -16,3 +18,5 @@ if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
     target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
 endif()
+
+include_directories(headers)

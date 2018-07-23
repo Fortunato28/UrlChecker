@@ -1,7 +1,7 @@
 #include <iostream>
 #include <boost/program_options.hpp>
 #include <fstream>
-#include "urlwrapper.h"
+#include "urlwrapper.hpp"
 
 namespace po = boost::program_options;
 
@@ -15,6 +15,7 @@ int main(int argc, char* argv[])
     int n; // Number of connect-attempts
     int t; // Delay before next connect
     string inputFile;
+    string outputFile;
     vector<string> urls;
 
     try
@@ -26,6 +27,7 @@ int main(int argc, char* argv[])
                 ("input,i", po::value<string>(&inputFile), "File conteining urls")
                 ("number,n", po::value<int>(&n)->default_value(3), "Number of connection attempts")
                 ("time-wait,t", po::value<int>(&t)->default_value(5), "Delau before next connect")
+                ("output,o", po::value<string>(&outputFile)->default_value("output.txt"), "File with report")
                 ;
         po::variables_map vm;
         po::store(po::parse_command_line(argc, argv, desc) , vm);
@@ -70,7 +72,8 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    UrlWrapper a(urls.at(1), n, t);
+    UrlWrapper a(urls.at(4), n, t);
+    a.serverPolling();
 
     return 0;
 }

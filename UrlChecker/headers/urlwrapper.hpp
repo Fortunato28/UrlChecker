@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <url_parser.hpp>
 
 using std::cout;
 using std::endl;
@@ -12,9 +13,11 @@ class UrlWrapper
 {
 public:
     UrlWrapper(std::string gettedUrl, int n, int t);
+    int serverPolling(); // Опрос сервера
     std::string getResult();
+
 private:
-    const std::string url;
+    const Url url;
     const int requestsNumber; // Количество запросов
     const int delay;          // Задержка перед запросами
 
@@ -22,8 +25,6 @@ private:
     int noResponse;     // Количество неотработавших запросов
 
     int sendAll(int sock, const std::string &message);
-    int recvAll(int sock, std::string *gettedMessage);
-    int serverPolling(); // Опрос сервера
 
     int getAverage();
     int getMax();
