@@ -1,7 +1,7 @@
 #include <iostream>
 #include <boost/program_options.hpp>
 #include <fstream>
-#include "urlwrapper.hpp"
+#include "url_wrapper.hpp"
 
 namespace po = boost::program_options;
 
@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    UrlWrapper a(urls.at(4), n, t);
+    UrlWrapper a(urls.at(2), n, t);
     a.serverPolling();
 
     return 0;

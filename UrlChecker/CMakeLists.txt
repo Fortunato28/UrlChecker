@@ -5,10 +5,10 @@ project(UrlChecker)
 
 set(SOURCES
     src/main.cpp
-    src/urlwrapper.cpp
+    src/url_wrapper.cpp
     src/url_parser.cpp)
 set(HEADERS
-    headers/urlwrapper.hpp
+    headers/url_wrapper.hpp
     headers/url_parser.hpp)
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})

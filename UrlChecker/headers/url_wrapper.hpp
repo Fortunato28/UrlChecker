@@ -6,9 +6,6 @@
 #include <iostream>
 #include <url_parser.hpp>
 
-using std::cout;
-using std::endl;
-
 class UrlWrapper
 {
 public:
@@ -18,6 +15,7 @@ public:
 
 private:
     const Url url;
+    std::string httpRequest;
     const int requestsNumber; // Количество запросов
     const int delay;          // Задержка перед запросами
 
