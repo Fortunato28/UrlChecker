@@ -11,7 +11,7 @@ class UrlWrapper
 public:
     UrlWrapper(std::string gettedUrl, int n, int t);
     ~UrlWrapper();
-    int serverPolling(); // Опрос сервера
+    int serverPolling();            // Опрос сервера
     std::string getResult();
 
 private:
@@ -23,10 +23,11 @@ private:
     struct addrinfo *serverInfo;    // Структура, хранящая данные о сервере
 
     int initSocket();
+    int tcpConnect();
     int sendFullMessage();
 
-    std::vector<int> responseTime;
-    int noResponse;     // Количество неотработавших запросов
+    std::vector<int> responseTime;  // Время всех ответов сервера (ms)
+    int noResponse;                 // Количество неотработавших запросов
 
     int getAverage();
     int getMax();

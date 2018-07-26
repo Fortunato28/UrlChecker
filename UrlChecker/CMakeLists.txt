@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 set (CMAKE_CXX_STANDARD 11)
 
 project(UrlChecker)
+include_directories(headers)
 
 set(SOURCES
     src/main.cpp
@@ -21,6 +22,5 @@ if(Boost_FOUND)
     target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
 endif()
 
-include_directories(headers)
-
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread")
+find_package (Threads)
+target_link_libraries (${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})

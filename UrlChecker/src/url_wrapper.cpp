@@ -9,6 +9,9 @@
 #include <url_parser.hpp>
 #include <netdb.h>
 #include <fcntl.h>
+#include <thread>
+#include <algorithm>
+
 
 using std::cout;
 using std::endl;
@@ -20,7 +23,7 @@ UrlWrapper::UrlWrapper(std::string gettedUrl, int n, int t) :
 {
     httpRequest = "HEAD " + url.path() +" HTTP/1.1\r\nHost: "
                              + url.host() + "\r\nConnection: close\r\n\r\n";
-    initSocket();
+//    initSocket();
 }
 
 int UrlWrapper::initSocket()
@@ -59,26 +62,7 @@ int UrlWrapper::initSocket()
     return 0;
 }
 
-int UrlWrapper::sendFullMessage()
-{
-   int totalSended = 0;
-   int sended = 0;
-   int messageLength = httpRequest.length();
-
-   while(totalSended < messageLength)
-   {
-       sended = send(sock, httpRequest.c_str() + totalSended, messageLength - totalSended, 0);
-       if(sended == -1)
-       {
-           break;
-       }
-       totalSended += sended;
-   }
-
-   return sended < 0 ? -1 : totalSended;
-}
-
-int UrlWrapper::serverPolling()
+int UrlWrapper::tcpConnect()
 {
     // Установка tcp-соединения
     int ress = connect(sock, serverInfo->ai_addr, serverInfo->ai_addrlen) ;
@@ -116,54 +100,128 @@ int UrlWrapper::serverPolling()
     else
     {
         perror("Select error << socket not set");
+        exit(0);
     }
 
-    high_resolution_clock::time_point timeBefore = high_resolution_clock::now();
-    int sended = sendFullMessage();
+}
 
-    // Получаем
-    char buf[1024];    // Больше байта и не нужно
+int UrlWrapper::sendFullMessage()
+{
+   int totalSended = 0;
+   int sended = 0;
+   int messageLength = httpRequest.length();
 
-    FD_ZERO(&readSet);
-    FD_SET(sock, &readSet);
+   while(totalSended < messageLength)
+   {
+       sended = send(sock, httpRequest.c_str() + totalSended, messageLength - totalSended, 0);
+       if(sended == -1)
+       {
+           break;
+       }
+       totalSended += sended;
+   }
 
-    if(select(sock + 1, &readSet, NULL, NULL, &timeout) <= 0)
+   return sended < 0 ? -1 : totalSended;
+}
+
+int UrlWrapper::serverPolling()
+{
+    for(int i = 0; i < requestsNumber; ++i)
     {
-        perror("Select here");
-        exit(4);
+        initSocket();
+        tcpConnect();
+
+        fd_set readSet, writeSet;
+        timeval timeout;
+        timeout.tv_sec = delay;
+        timeout.tv_usec = 0;
+
+        high_resolution_clock::time_point timeBefore = high_resolution_clock::now();
+        int sended = sendFullMessage();
+
+        // Получаем
+        char buf[1024];    // Больше байта и не нужно
+
+        FD_ZERO(&readSet);
+        FD_SET(sock, &readSet);
+
+        if(select(sock + 1, &readSet, NULL, NULL, &timeout) <= 0)
+        {
+            perror("Select here");
+            exit(4);
+        }
+
+        if(FD_ISSET(sock, &readSet))
+        {
+            long int getted = recv(sock, buf, 1024, 0);
+        }
+
+        FD_ZERO(&readSet);
+        FD_SET(sock, &readSet);
+        writeSet = readSet;
+
+        if(select(sock + 1, &readSet, &writeSet, NULL, &timeout) <= 0)
+        {
+            perror("Select");
+            exit(4);
+        }
+
+        high_resolution_clock::time_point timeAfter;
+        if(FD_ISSET(sock, &readSet) || FD_ISSET(sock, &writeSet))
+        {
+             timeAfter = high_resolution_clock::now();
+        }
+
+        // Время отклика сервера в секундах
+        std::chrono::duration<double> timeDiff = std::chrono::duration_cast<std::chrono::duration<double>>(timeAfter - timeBefore);
+        responseTime.push_back(timeDiff.count() * 1000);
+
+        close(sock);
+        // Защита от лишнего ожидания после последней итерации
+        if(i < (requestsNumber - 1))
+            std::this_thread::sleep_for(std::chrono::seconds(delay));
     }
-
-    if(FD_ISSET(sock, &readSet))
-    {
-        long int getted = recv(sock, buf, 1024, 0);
-    }
-
-    FD_ZERO(&readSet);
-    FD_SET(sock, &readSet);
-    writeSet = readSet;
-
-    if(select(sock + 1, &readSet, &writeSet, NULL, &timeout) <= 0)
-    {
-        perror("Select");
-        exit(4);
-    }
-
-    high_resolution_clock::time_point timeAfter;
-    if(FD_ISSET(sock, &readSet) || FD_ISSET(sock, &writeSet))
-    {
-         timeAfter = high_resolution_clock::now();
-    }
-
-    // Время отклика сервера в секундах
-    std::chrono::duration<double> timeDiff = std::chrono::duration_cast<std::chrono::duration<double>>(timeAfter - timeBefore);
-
-    cout << timeDiff.count() << endl;
 
     return 0;
+}
+
+std::string UrlWrapper::getResult()
+{
+    std::string result;
+    result += url.str() + " " +
+            std::to_string(getMax()) + "/" +
+            std::to_string(getAverage()) + "/" +
+            std::to_string(getMin()) + " " +
+            std::to_string(noResponse);
+
+    return result;
+}
+
+int UrlWrapper::getMax()
+{
+    return *std::max_element(responseTime.begin(), responseTime.end());
+}
+
+int UrlWrapper::getAverage()
+{
+    int result = 0;
+
+    for(auto &time: responseTime)
+    {
+        result += time;
+    }
+
+    result /= responseTime.size();
+
+    return result;
+}
+
+int UrlWrapper::getMin()
+{
+    return *std::min_element(responseTime.begin(), responseTime.end());
 }
 
 UrlWrapper::~UrlWrapper()
 {
    freeaddrinfo(serverInfo);
-   close(sock);
 }

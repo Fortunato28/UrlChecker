@@ -73,10 +73,10 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-/*    UrlWrapper a(urls.at(0), n, t);
-    a.serverPolling()*/;
+//    UrlWrapper a(urls.at(0), n, t);
+//    a.serverPolling();
 
-    Controller controller(urls, n, t);
+    Controller controller(urls, n, t, outputFile);
     controller.startPolling();
 
     return 0;
