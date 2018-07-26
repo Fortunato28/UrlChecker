@@ -180,6 +180,7 @@ int UrlWrapper::serverPolling()
         // Защита от лишнего ожидания после последней итерации
         if(i < (requestsNumber - 1))
             std::this_thread::sleep_for(std::chrono::seconds(delay));
+        cout << "Please wait..." << endl;
     }
 
     return 0;

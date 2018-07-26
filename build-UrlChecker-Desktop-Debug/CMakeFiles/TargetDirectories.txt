@@ -1,0 +1,3 @@
+/home/sap/QT Project/UrlChecker/build-UrlChecker-Desktop-Debug/CMakeFiles/edit_cache.dir
+/home/sap/QT Project/UrlChecker/build-UrlChecker-Desktop-Debug/CMakeFiles/rebuild_cache.dir
+/home/sap/QT Project/UrlChecker/build-UrlChecker-Desktop-Debug/CMakeFiles/UrlChecker.dir

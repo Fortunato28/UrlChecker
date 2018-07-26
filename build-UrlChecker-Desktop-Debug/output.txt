@@ -1,0 +1,6 @@
+url, max/avg/min (ms), bad _request
+https://www.google.ru/ 235/232/230 1953693745
+https://yandex.com 296/290/284 96
+https://github.com/chmike/CxxUrl 530/511/495 36935440
+https://vk.com/tusuroverhear 343/331/325 36935440
+http://tomsksoft.ru/internship.html 407/395/382 18

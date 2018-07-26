@@ -1,0 +1,102 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/sap/QT Project/UrlChecker/UrlChecker/headers/controller.hpp
+url_wrapper.hpp
+/home/sap/QT Project/UrlChecker/UrlChecker/headers/url_wrapper.hpp
+
+/home/sap/QT Project/UrlChecker/UrlChecker/headers/url_parser.hpp
+string
+-
+vector
+-
+utility
+-
+stdexcept
+-
+cstdint
+-
+ostream
+-
+utility
+-
+
+/home/sap/QT Project/UrlChecker/UrlChecker/headers/url_wrapper.hpp
+string
+-
+vector
+-
+iostream
+-
+url_parser.hpp
+-
+
+/home/sap/QT Project/UrlChecker/UrlChecker/src/controller.cpp
+controller.hpp
+/home/sap/QT Project/UrlChecker/UrlChecker/src/controller.hpp
+thread
+-
+fstream
+-
+
+/home/sap/QT Project/UrlChecker/UrlChecker/src/main.cpp
+iostream
+-
+boost/program_options.hpp
+-
+fstream
+-
+url_wrapper.hpp
+/home/sap/QT Project/UrlChecker/UrlChecker/src/url_wrapper.hpp
+controller.hpp
+/home/sap/QT Project/UrlChecker/UrlChecker/src/controller.hpp
+
+/home/sap/QT Project/UrlChecker/UrlChecker/src/url_parser.cpp
+url_parser.hpp
+/home/sap/QT Project/UrlChecker/UrlChecker/src/url_parser.hpp
+algorithm
+-
+cstdlib
+-
+iterator
+-
+sstream
+-
+cstdint
+-
+iostream
+-
+
+/home/sap/QT Project/UrlChecker/UrlChecker/src/url_wrapper.cpp
+url_wrapper.hpp
+/home/sap/QT Project/UrlChecker/UrlChecker/src/url_wrapper.hpp
+sys/types.h
+-
+sys/socket.h
+-
+netinet/in.h
+-
+arpa/inet.h
+-
+unistd.h
+-
+string.h
+-
+chrono
+-
+url_parser.hpp
+-
+netdb.h
+-
+fcntl.h
+-
+thread
+-
+algorithm
+-
+

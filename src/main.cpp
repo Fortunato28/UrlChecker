@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
         // Parameter processing
         if(vm.count("help"))
         {
-            cout << "Usage: " << argv[0] << " -i FILE -n NUMBER -t DELAY" << endl;
+            cout << "Usage: " << argv[0] << " -i FILE -n NUMBER -t DELAY -o OUTPUT" << endl;
             cout << desc << endl;
             return 1;
         }
