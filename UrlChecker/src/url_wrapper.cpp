@@ -20,33 +20,29 @@ UrlWrapper::UrlWrapper(std::string gettedUrl, int n, int t) :
 {
     httpRequest = "HEAD " + url.path() +" HTTP/1.1\r\nHost: "
                              + url.host() + "\r\nConnection: close\r\n\r\n";
+    initSocket();
 }
 
-int UrlWrapper::sendAll(int sock, const std::string &message)
+int UrlWrapper::initSocket()
 {
-   int totalSended = 0;
-   int sended = 0;
-   int messageLength = message.length();
+    // Новые игрища с DNS и структурой данных сервера
+    int status;
+    struct addrinfo hints;
 
-   while(totalSended < messageLength)
-   {
-       sended = send(sock, message.c_str() + totalSended, messageLength - totalSended, 0);
-       if(sended == -1)
-       {
-           break;
-       }
-       totalSended += sended;
-   }
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;                // Хоть IPv4, хоть IPv6
+    hints.ai_socktype = SOCK_STREAM;            // TCP-соединение
 
-   return sended < 0 ? -1 : totalSended;
-}
+    // С https сервера сразу разрывают соединение.
+    // Думаю потому, что нужно устанавливать защищённое соединение сначала.
+    // Впрочем, на работу программы это не влияет, ведь сервера всё же отвечают.
+    if((status = getaddrinfo(url.host().c_str(), url.scheme().c_str(), &hints, &serverInfo)) != 0)
+    {
+        fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
+        exit(1);
+    }
 
-int UrlWrapper::serverPolling()
-{
-    int sock;
-    struct sockaddr_in addr;
-
-    sock = socket(PF_INET, SOCK_STREAM, 0);
+    sock = socket(serverInfo->ai_family, serverInfo->ai_socktype, serverInfo->ai_protocol);
     if(sock < 0)
     {
         std::perror("Socket error");
@@ -60,24 +56,35 @@ int UrlWrapper::serverPolling()
         exit(5);
     }
 
-    // DNS-игрища
-    struct hostent *siteData = gethostbyname(url.host().c_str());
-    if(siteData == nullptr)
-    {
-        herror("Wrong DNS resolve");
-        exit(3);
-    }
+    return 0;
+}
 
-    // Структура с данными сервера
-    addr.sin_family = AF_INET;
-    addr.sin_port   = htons(80);
-    memcpy(&addr.sin_addr.s_addr, siteData->h_addr, siteData->h_length); // Это такая запись IP в нужную структуру
+int UrlWrapper::sendFullMessage()
+{
+   int totalSended = 0;
+   int sended = 0;
+   int messageLength = httpRequest.length();
 
+   while(totalSended < messageLength)
+   {
+       sended = send(sock, httpRequest.c_str() + totalSended, messageLength - totalSended, 0);
+       if(sended == -1)
+       {
+           break;
+       }
+       totalSended += sended;
+   }
+
+   return sended < 0 ? -1 : totalSended;
+}
+
+int UrlWrapper::serverPolling()
+{
     // Установка tcp-соединения
-    int ress = connect(sock, (struct sockaddr *)&addr, sizeof(addr)) ;
+    int ress = connect(sock, serverInfo->ai_addr, serverInfo->ai_addrlen) ;
     if(ress < 0 && errno != EINPROGRESS)
     {
-        std::perror("Connect error");
+        perror("Connect:");
         exit(1);
     }
 
@@ -90,7 +97,7 @@ int UrlWrapper::serverPolling()
     FD_ZERO(&readSet);
     FD_SET(sock, &readSet);
     writeSet = readSet;
-    timeout.tv_sec = 1;
+    timeout.tv_sec = delay;
     timeout.tv_usec = 0;
 
     if((ress = select(sock + 1, &readSet, &writeSet, NULL, &timeout)) == 0)
@@ -111,11 +118,8 @@ int UrlWrapper::serverPolling()
         perror("Select error << socket not set");
     }
 
-
     high_resolution_clock::time_point timeBefore = high_resolution_clock::now();
-    int sended = sendAll(sock, httpRequest);
-
-    cout << sended << endl;
+    int sended = sendFullMessage();
 
     // Получаем
     char buf[1024];    // Больше байта и не нужно
@@ -125,7 +129,7 @@ int UrlWrapper::serverPolling()
 
     if(select(sock + 1, &readSet, NULL, NULL, &timeout) <= 0)
     {
-        perror("Select");
+        perror("Select here");
         exit(4);
     }
 
@@ -133,7 +137,6 @@ int UrlWrapper::serverPolling()
     {
         long int getted = recv(sock, buf, 1024, 0);
     }
-
 
     FD_ZERO(&readSet);
     FD_SET(sock, &readSet);
@@ -151,17 +154,16 @@ int UrlWrapper::serverPolling()
          timeAfter = high_resolution_clock::now();
     }
 
-    close(sock);
-
     // Время отклика сервера в секундах
     std::chrono::duration<double> timeDiff = std::chrono::duration_cast<std::chrono::duration<double>>(timeAfter - timeBefore);
 
-    cout << httpRequest << endl;
-    cout << buf << endl;
     cout << timeDiff.count() << endl;
-    cout << url.str() << endl;
-    cout << url.host() << endl;
-    cout << url.path() << endl;
 
     return 0;
+}
+
+UrlWrapper::~UrlWrapper()
+{
+   freeaddrinfo(serverInfo);
+   close(sock);
 }

@@ -6,10 +6,12 @@ project(UrlChecker)
 set(SOURCES
     src/main.cpp
     src/url_wrapper.cpp
-    src/url_parser.cpp)
+    src/url_parser.cpp
+    src/controller.cpp)
 set(HEADERS
     headers/url_wrapper.hpp
-    headers/url_parser.hpp)
+    headers/url_parser.hpp
+    headers/controller.hpp)
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
@@ -20,3 +22,5 @@ if(Boost_FOUND)
 endif()
 
 include_directories(headers)
+
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread")

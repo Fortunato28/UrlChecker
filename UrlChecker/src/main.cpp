@@ -2,6 +2,7 @@
 #include <boost/program_options.hpp>
 #include <fstream>
 #include "url_wrapper.hpp"
+#include "controller.hpp"
 
 namespace po = boost::program_options;
 
@@ -72,8 +73,11 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    UrlWrapper a(urls.at(2), n, t);
-    a.serverPolling();
+/*    UrlWrapper a(urls.at(0), n, t);
+    a.serverPolling()*/;
+
+    Controller controller(urls, n, t);
+    controller.startPolling();
 
     return 0;
 }
