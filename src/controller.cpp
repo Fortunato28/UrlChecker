@@ -32,7 +32,6 @@ int Controller::startPolling()
         // Без ref объект копируется, что крашит сокеты
         std::thread threadInstance(&UrlWrapper::serverPolling, std::ref(*urlInstance));
         threads.push_back(std::move(threadInstance));
-        std::cout << "Please wait..." << std::endl;         // Чтобы было понятно, что программа работает
     }
 
     for(auto &thread : threads)

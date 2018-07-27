@@ -138,6 +138,8 @@ int UrlWrapper::serverPolling()
 {
     for(int i = 0; i < requestsNumber; ++i)
     {
+        std::cout << "Please wait..." << std::endl;         // Чтобы было понятно, что программа работает
+
         int initSock = initSocket();
         if(initSock == -1)
         {
