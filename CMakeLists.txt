@@ -16,6 +16,7 @@ set(HEADERS
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
+set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost 1.58.0 COMPONENTS program_options)
 if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})

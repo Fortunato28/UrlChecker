@@ -110,6 +110,7 @@ int UrlWrapper::tcpConnect()
         return 1;
     }
 
+    return 0;
 }
 
 int UrlWrapper::sendFullMessage()
