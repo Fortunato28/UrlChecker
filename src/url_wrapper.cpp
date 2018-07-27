@@ -48,7 +48,8 @@ int UrlWrapper::initSocket()
     if((status = getaddrinfo(url.host().c_str(), url.scheme().c_str(), &hints, &serverInfo)) != 0)
     {
         fprintf(stderr, "getaddrinfo error: %s, check %s to correctness\n", gai_strerror(status), url.str().c_str());
-        exit(0); // DNS-resolv на одном из параметров не сработал
+//        exit(0); // DNS-resolv на одном из параметров не сработал
+        return -1;
     }
 
     sock = socket(serverInfo->ai_family, serverInfo->ai_socktype, serverInfo->ai_protocol);
@@ -137,11 +138,19 @@ int UrlWrapper::serverPolling()
 {
     for(int i = 0; i < requestsNumber; ++i)
     {
-        if(initSocket())        // Какая-то ошибка, давайте подождём попробуем ещё раз
+        int initSock = initSocket();
+        if(initSock == -1)
+        {
+            // Возврат с ошибкой
+            responseTime.push_back(0);      // Вот по нему Controller распознает, что ошибка
+            return 1;
+        }
+        if(initSock)        // Какая-то ошибка, давайте подождём попробуем ещё раз
         {
             std::this_thread::sleep_for(std::chrono::seconds(delay));
             break;
         }
+
 
         if(tcpConnect())        // Какая-то ошибка, давайте подождём попробуем ещё раз
         {
@@ -223,6 +232,12 @@ int UrlWrapper::serverPolling()
 std::string UrlWrapper::getResult()
 {
     std::string result;
+    //Ошибка DNS-резолва
+    if((responseTime.size() == 1) && (responseTime.at(0) == 0))
+    {
+        std::cout << url.str() + " " + "Can not be polled" << std::endl;
+        return url.str() + " " + "Can not be polled";
+    }
     result += url.str() + " " +
             std::to_string(getMax()) + "/" +
             std::to_string(getAverage()) + "/" +
