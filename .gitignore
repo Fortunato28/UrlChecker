@@ -36,3 +36,4 @@
 
 # CMake user file
 CMakeLists.txt.user
+CMakeLists.txt.user*
