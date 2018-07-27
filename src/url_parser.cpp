@@ -1,3 +1,9 @@
+/******************************************************************************
+     * File: url_wrapper.cpp
+     * Description: Файл содержит реализацию url-парсера
+     * Created: -
+     * Author: https://github.com/chmike/CxxUrl
+******************************************************************************/
 #include "url_parser.hpp"
 //#include <boost/regex.hpp>
 #include <algorithm>

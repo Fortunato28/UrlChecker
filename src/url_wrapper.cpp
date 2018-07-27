@@ -1,3 +1,12 @@
+/******************************************************************************
+     * File: url_wrapper.cpp
+     * Description: Файл представляет собой реализацию класса UrlWrapper,
+     *              объекты которого опрашивают конкретный сервера и собирают
+     *              результаты об опросе.
+     * Created: июль 2019
+     * Author: Сапунов Антон
+     * Email: fort.sav.28@gmail.com
+******************************************************************************/
 #include "url_wrapper.hpp"
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -12,10 +21,6 @@
 #include <thread>
 #include <algorithm>
 
-
-using std::cout;
-using std::endl;
-
 using std::chrono::high_resolution_clock;
 
 UrlWrapper::UrlWrapper(std::string gettedUrl, int n, int t) :
@@ -23,7 +28,8 @@ UrlWrapper::UrlWrapper(std::string gettedUrl, int n, int t) :
 {
     httpRequest = "HEAD " + url.path() +" HTTP/1.1\r\nHost: "
                              + url.host() + "\r\nConnection: close\r\n\r\n";
-//    initSocket();
+
+    noResponse = 0;
 }
 
 int UrlWrapper::initSocket()
@@ -41,22 +47,22 @@ int UrlWrapper::initSocket()
     // Впрочем, на работу программы это не влияет, ведь сервера всё же отвечают.
     if((status = getaddrinfo(url.host().c_str(), url.scheme().c_str(), &hints, &serverInfo)) != 0)
     {
-        fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
-        exit(1);
+        fprintf(stderr, "getaddrinfo error: %s, check urls to correctness\n", gai_strerror(status));
+        exit(0); // DNS-resolv на одном из параметров не сработал
     }
 
     sock = socket(serverInfo->ai_family, serverInfo->ai_socktype, serverInfo->ai_protocol);
     if(sock < 0)
     {
         std::perror("Socket error");
-        exit(1);
+        return 1;
     }
 
     // Делаем неблокирующим
     if(fcntl(sock, F_SETFL, O_NONBLOCK) != 0)
     {
         perror("Fctnl couldn`t set socket nonblocking");
-        exit(5);
+        return 1;
     }
 
     return 0;
@@ -69,15 +75,16 @@ int UrlWrapper::tcpConnect()
     if(ress < 0 && errno != EINPROGRESS)
     {
         perror("Connect:");
-        exit(1);
+        return 1;
     }
 
-    // Работка с соединением на неблокирующем сокете
+    // Работа с соединением на неблокирующем сокете
     fd_set readSet, writeSet;
     timeval timeout;
     socklen_t len;
     int error;
 
+    // Данные для select`a
     FD_ZERO(&readSet);
     FD_SET(sock, &readSet);
     writeSet = readSet;
@@ -88,19 +95,19 @@ int UrlWrapper::tcpConnect()
     {
         close(sock); // timeout
         errno = ETIMEDOUT;
-        return(-1);
+        return(1);
     }
 
     if(FD_ISSET(sock, &readSet) || FD_ISSET(sock, &writeSet))
     {
         len = sizeof(error);
         if(getsockopt(sock, SOL_SOCKET, SO_ERROR, &error, &len) < 0)
-            return(-1);
+            return(1);
     }
     else
     {
         perror("Select error << socket not set");
-        exit(0);
+        return 1;
     }
 
 }
@@ -111,6 +118,7 @@ int UrlWrapper::sendFullMessage()
    int sended = 0;
    int messageLength = httpRequest.length();
 
+   // Отправляем, пока не улетит всё сообщение
    while(totalSended < messageLength)
    {
        sended = send(sock, httpRequest.c_str() + totalSended, messageLength - totalSended, 0);
@@ -128,44 +136,68 @@ int UrlWrapper::serverPolling()
 {
     for(int i = 0; i < requestsNumber; ++i)
     {
-        initSocket();
-        tcpConnect();
+        if(initSocket())        // Какая-то ошибка, давайте подождём попробуем ещё раз
+        {
+            std::this_thread::sleep_for(std::chrono::seconds(delay));
+            break;
+        }
 
-        fd_set readSet, writeSet;
-        timeval timeout;
-        timeout.tv_sec = delay;
-        timeout.tv_usec = 0;
+        if(tcpConnect())        // Какая-то ошибка, давайте подождём попробуем ещё раз
+        {
+            ++noResponse;       // Соединение установить не удалось
+            std::this_thread::sleep_for(std::chrono::seconds(delay));
+            break;
+        }
 
         high_resolution_clock::time_point timeBefore = high_resolution_clock::now();
         int sended = sendFullMessage();
 
         // Получаем
-        char buf[1024];    // Больше байта и не нужно
+        char buf[1];    // Больше байта и не нужно
 
+        // Данные для select`a
+        fd_set readSet, writeSet;
+        timeval timeout;
+        timeout.tv_sec = delay;
+        timeout.tv_usec = 0;
         FD_ZERO(&readSet);
         FD_SET(sock, &readSet);
 
         if(select(sock + 1, &readSet, NULL, NULL, &timeout) <= 0)
         {
-            perror("Select here");
-            exit(4);
+            // Если ошибка здесь, то это локальная, сервер ни при чём
+            perror("Select:");
+            std::this_thread::sleep_for(std::chrono::seconds(delay));
+            break;
         }
 
+        // Если сокет доступен для чтения
         if(FD_ISSET(sock, &readSet))
         {
-            long int getted = recv(sock, buf, 1024, 0);
+            long int getted = recv(sock, buf, 1, 0);
+            if(getted == -1)
+            {
+                perror("Recv error:");
+                ++noResponse;       // Что-то плохое произошло во время получения ответа
+                std::this_thread::sleep_for(std::chrono::seconds(delay));
+                break;
+            }
         }
 
+        // Если сокет доступен
         FD_ZERO(&readSet);
         FD_SET(sock, &readSet);
         writeSet = readSet;
 
         if(select(sock + 1, &readSet, &writeSet, NULL, &timeout) <= 0)
         {
-            perror("Select");
-            exit(4);
+            // Если ошибка здесь, то это локальная, сервер ни чём
+            perror("Select:");
+            std::this_thread::sleep_for(std::chrono::seconds(delay));
+            break;
         }
 
+        // Когда уже приняли, возьмём второе время
         high_resolution_clock::time_point timeAfter;
         if(FD_ISSET(sock, &readSet) || FD_ISSET(sock, &writeSet))
         {
@@ -176,11 +208,12 @@ int UrlWrapper::serverPolling()
         std::chrono::duration<double> timeDiff = std::chrono::duration_cast<std::chrono::duration<double>>(timeAfter - timeBefore);
         responseTime.push_back(timeDiff.count() * 1000);
 
+        // Освобождаем использованное
         close(sock);
+        freeaddrinfo(serverInfo);
         // Защита от лишнего ожидания после последней итерации
         if(i < (requestsNumber - 1))
             std::this_thread::sleep_for(std::chrono::seconds(delay));
-        cout << "Please wait..." << endl;
     }
 
     return 0;
@@ -220,9 +253,4 @@ int UrlWrapper::getAverage()
 int UrlWrapper::getMin()
 {
     return *std::min_element(responseTime.begin(), responseTime.end());
-}
-
-UrlWrapper::~UrlWrapper()
-{
-   freeaddrinfo(serverInfo);
 }

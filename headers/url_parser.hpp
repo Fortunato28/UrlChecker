@@ -1,6 +1,9 @@
-/*
- * Autor: https://github.com/chmike/CxxUrl
-*/
+/******************************************************************************
+     * File: url_wrapper.hpp
+     * Description: Файл содержит интерфейс для использования url-парсера
+     * Created: -
+     * Author: https://github.com/chmike/CxxUrl
+******************************************************************************/
 #ifndef URL_HPP
 #define URL_HPP
 

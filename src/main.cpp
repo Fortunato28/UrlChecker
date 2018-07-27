@@ -1,3 +1,10 @@
+/******************************************************************************
+     * File: main.cpp
+     * Description: Файл обрабатывает входные параметры и вызывает объект Controller`a
+     * Created: июль 2019
+     * Author: Сапунов Антон
+     * Email: fort.sav.28@gmail.com
+******************************************************************************/
 #include <iostream>
 #include <boost/program_options.hpp>
 #include <fstream>
@@ -21,7 +28,7 @@ int main(int argc, char* argv[])
 
     try
     {
-        // Commandline parse
+        // Парсинг аргументов командной строки
         po::options_description desc("Options");
         desc.add_options()
                 ("help,h", "Display this help and exit")
@@ -34,7 +41,7 @@ int main(int argc, char* argv[])
         po::store(po::parse_command_line(argc, argv, desc) , vm);
         po::notify(vm);
 
-        // Parameter processing
+        // Подсказка
         if(vm.count("help"))
         {
             cout << "Usage: " << argv[0] << " -i FILE -n NUMBER -t DELAY -o OUTPUT" << endl;
@@ -48,12 +55,13 @@ int main(int argc, char* argv[])
             return 1;
         }
 
-        //Config file parse
+        // Парсинг конфигурационного файла
         po::options_description fileDesc("Options in config file");
         fileDesc.add_options()
                 ("url", po::value<vector<string> >(&urls), "url that be checked")
                 ;
 
+        // А конфигурационного файла-то и нет
         std::fstream configFile(inputFile);
         if(!configFile.is_open())
         {
@@ -73,7 +81,8 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-//    UrlWrapper a(urls.at(0), n, t);
+    // Проверка логики опроса конкретного сайта (без многопоточности)
+//    UrlWrapper a(urls.at(5), n, t);
 //    a.serverPolling();
 
     Controller controller(urls, n, t, outputFile);
