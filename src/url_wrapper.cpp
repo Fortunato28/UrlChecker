@@ -47,7 +47,7 @@ int UrlWrapper::initSocket()
     // Впрочем, на работу программы это не влияет, ведь сервера всё же отвечают.
     if((status = getaddrinfo(url.host().c_str(), url.scheme().c_str(), &hints, &serverInfo)) != 0)
     {
-        fprintf(stderr, "getaddrinfo error: %s, check urls to correctness\n", gai_strerror(status));
+        fprintf(stderr, "getaddrinfo error: %s, check %s to correctness\n", gai_strerror(status), url.str().c_str());
         exit(0); // DNS-resolv на одном из параметров не сработал
     }
 
