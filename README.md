@@ -18,6 +18,6 @@
 ./UrlChecker -i testConfig.txt -n 3 -t 5 -o output.txt
 
 # Пример конфигурационного файла:
-testConfig.txt:
+testConfig.txt:  
 url = https://www.google.ru/  
 url = https://www.yandex.ru/
