@@ -28,8 +28,8 @@ UrlWrapper::UrlWrapper(std::string gettedUrl, int n, int t) :
 {
     httpRequest = "HEAD " + url.path() +" HTTP/1.1\r\nHost: "
                              + url.host() + "\r\nConnection: close\r\n\r\n";
-
     noResponse = 0;
+    responseTime.clear();
 }
 
 int UrlWrapper::initSocket()
@@ -94,16 +94,20 @@ int UrlWrapper::tcpConnect()
 
     if((ress = select(sock + 1, &readSet, &writeSet, NULL, &timeout)) == 0)
     {
+        perror("Timeout:");
         close(sock); // timeout
         errno = ETIMEDOUT;
-        return(1);
+        return 1;
     }
 
     if(FD_ISSET(sock, &readSet) || FD_ISSET(sock, &writeSet))
     {
         len = sizeof(error);
         if(getsockopt(sock, SOL_SOCKET, SO_ERROR, &error, &len) < 0)
-            return(1);
+        {
+            perror("getsockopt error:");
+            return 1;
+        }
     }
     else
     {
@@ -141,24 +145,21 @@ int UrlWrapper::serverPolling()
         std::cout << "Please wait..." << std::endl;         // Чтобы было понятно, что программа работает
 
         int initSock = initSocket();
-        if(initSock == -1)
+        if(initSock == -1)      // Ошибка DNS-resolv
         {
             // Возврат с ошибкой
-            responseTime.push_back(0);      // Вот по нему Controller распознает, что ошибка
             return 1;
         }
         if(initSock)        // Какая-то ошибка, давайте подождём попробуем ещё раз
         {
             std::this_thread::sleep_for(std::chrono::seconds(delay));
-            break;
+            continue;
         }
-
 
         if(tcpConnect())        // Какая-то ошибка, давайте подождём попробуем ещё раз
         {
-            ++noResponse;       // Соединение установить не удалось
             std::this_thread::sleep_for(std::chrono::seconds(delay));
-            break;
+            continue;
         }
 
         high_resolution_clock::time_point timeBefore = high_resolution_clock::now();
@@ -180,7 +181,7 @@ int UrlWrapper::serverPolling()
             // Если ошибка здесь, то это локальная, сервер ни при чём
             perror("Select:");
             std::this_thread::sleep_for(std::chrono::seconds(delay));
-            break;
+            continue;
         }
 
         // Если сокет доступен для чтения
@@ -192,7 +193,7 @@ int UrlWrapper::serverPolling()
                 perror("Recv error:");
                 ++noResponse;       // Что-то плохое произошло во время получения ответа
                 std::this_thread::sleep_for(std::chrono::seconds(delay));
-                break;
+                continue;
             }
         }
 
@@ -206,7 +207,7 @@ int UrlWrapper::serverPolling()
             // Если ошибка здесь, то это локальная, сервер ни чём
             perror("Select:");
             std::this_thread::sleep_for(std::chrono::seconds(delay));
-            break;
+            continue;
         }
 
         // Когда уже приняли, возьмём второе время
@@ -234,8 +235,8 @@ int UrlWrapper::serverPolling()
 std::string UrlWrapper::getResult()
 {
     std::string result;
-    //Ошибка DNS-резолва
-    if((responseTime.size() == 1) && (responseTime.at(0) == 0))
+    // Где-то произошли неисправимые ошибки
+    if(responseTime.empty())
     {
         std::cout << url.str() + " " + "Can not be polled" << std::endl;
         return url.str() + " " + "Can not be polled";
